@@ -1,5 +1,6 @@
 use crate::model::task::{Task, TaskStatus};
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum FilterKind {
     All,
@@ -10,12 +11,14 @@ pub enum FilterKind {
     ThisWeek,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Filter {
     pub active: bool,
     pub kind: FilterKind,
 }
 
+#[allow(dead_code)]
 impl Filter {
     pub fn new() -> Self {
         Self {
@@ -54,6 +57,7 @@ impl Filter {
     }
 }
 
+#[allow(dead_code)]
 pub fn extract_tags(title: &str) -> Vec<String> {
     title
         .split_whitespace()
@@ -62,6 +66,7 @@ pub fn extract_tags(title: &str) -> Vec<String> {
         .collect()
 }
 
+#[allow(dead_code)]
 pub fn fuzzy_match(query: &str, text: &str) -> bool {
     if query.is_empty() {
         return true;

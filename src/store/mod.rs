@@ -204,6 +204,7 @@ impl Store {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn update_reminder(&self, reminder: &Reminder) -> Result<()> {
         let trigger_at_str = reminder.trigger_at.to_rfc3339();
 
@@ -220,6 +221,7 @@ impl Store {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn delete_reminder(&self, id: &str) -> Result<()> {
         self.conn.execute("DELETE FROM reminders WHERE id = ?1", params![id])?;
         Ok(())

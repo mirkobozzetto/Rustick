@@ -1,6 +1,7 @@
 use crate::model::task::Task;
 use chrono::Local;
 
+#[allow(dead_code)]
 pub fn check_reminders(tasks: &[Task]) -> Vec<String> {
     let now = Local::now();
     let mut triggered = Vec::new();
@@ -17,6 +18,7 @@ pub fn check_reminders(tasks: &[Task]) -> Vec<String> {
     triggered
 }
 
+#[allow(dead_code)]
 pub fn next_reminder(tasks: &[Task]) -> Option<(String, chrono::DateTime<Local>)> {
     let now = Local::now();
     let mut earliest: Option<(String, chrono::DateTime<Local>)> = None;
@@ -38,6 +40,7 @@ pub fn next_reminder(tasks: &[Task]) -> Option<(String, chrono::DateTime<Local>)
     earliest
 }
 
+#[allow(dead_code)]
 pub fn format_relative_time(target: chrono::DateTime<Local>) -> String {
     let now = Local::now();
     let diff = target.signed_duration_since(now);

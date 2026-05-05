@@ -10,6 +10,7 @@ pub struct Reminder {
     pub acknowledged: bool,
 }
 
+#[allow(dead_code)]
 impl Reminder {
     pub fn new(id: String, task_id: String, trigger_at: DateTime<Local>) -> Self {
         Self {
