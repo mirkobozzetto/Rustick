@@ -1,5 +1,5 @@
 use crate::app::{App, Mode};
-use chrono::{Local, Datelike, Timelike};
+use chrono::{Datelike, Local};
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Paragraph};
 use time::{Date, Month};
@@ -16,7 +16,7 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
     };
 
     let block = Block::default()
-        .title(if app.mode == Mode::DatePick { "Calendar" } else { "Timeline" })
+        .title("Calendar")
         .borders(Borders::ALL)
         .border_style(border_style);
 
@@ -27,130 +27,26 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
         return;
     }
 
-    if app.mode == Mode::DatePick {
-        render_calendar(frame, app, inner);
-    } else {
-        render_timeline(frame, app, inner);
-    }
-}
-
-fn render_timeline(frame: &mut Frame, app: &App, area: Rect) {
-    if area.height < 2 {
-        return;
-    }
-
-    let now = Local::now();
-    let current_hour = now.hour() as usize;
-
-    let mut lines = Vec::new();
-    for hour in 0..24 {
-        let hour_str = format!("{:02}:00", hour);
-
-        let hour_tasks: Vec<_> = app
-            .tasks
-            .iter()
-            .filter(|t| {
-                if let Some(due_at) = t.due_at {
-                    due_at.hour() as usize == hour
-                        && due_at.date_naive() == now.date_naive()
-                } else {
-                    false
-                }
-            })
-            .collect();
-
-        if !hour_tasks.is_empty() {
-            let task = hour_tasks[0];
-            let title_preview = task.title.chars().take(15).collect::<String>();
-            let task_color = if task.due_at.unwrap() < now {
-                Color::Red
-            } else {
-                match task.priority {
-                    1 => Color::Red,
-                    2 => Color::Yellow,
-                    3 => Color::Cyan,
-                    _ => Color::DarkGray,
-                }
-            };
-
-            let line = format!("{:02}:00  █ {}", hour, title_preview);
-
-            if hour == current_hour {
-                lines.push((line, Some(task_color), true));
-            } else {
-                lines.push((line, Some(task_color), false));
-            }
-        } else {
-            if hour == current_hour {
-                lines.push((format!("{:02}:00", hour), None, true));
-            } else {
-                lines.push((hour_str, None, false));
-            }
-        }
-    }
-
-    let start_line = if current_hour > (area.height as usize / 2) {
-        current_hour - (area.height as usize / 2)
-    } else {
-        0
-    };
-    let end_line = (start_line + area.height as usize).min(24);
-
-    for (i, y) in (0..area.height as usize).enumerate() {
-        if start_line + i >= end_line {
-            break;
-        }
-
-        let (text, color, is_current) = &lines[start_line + i];
-        let style = if *is_current {
-            if let Some(c) = color {
-                Style::default().fg(*c).bold()
-            } else {
-                Style::default().bold()
-            }
-        } else if let Some(c) = color {
-            Style::default().fg(*c)
-        } else {
-            Style::default()
-        };
-
-        let prefix = if *is_current { "▶" } else { " " };
-        let display_text = if *is_current {
-            format!("{}{}", prefix, text)
-        } else {
-            format!("  {}", text)
-        };
-
-        frame.render_widget(
-            Paragraph::new(display_text).style(style),
-            Rect {
-                x: area.x,
-                y: area.y + y as u16,
-                width: area.width,
-                height: 1,
-            },
-        );
-    }
+    render_calendar(frame, app, inner);
 }
 
 fn render_calendar(frame: &mut Frame, app: &App, area: Rect) {
     if area.height < 15 {
-        frame.render_widget(
-            Paragraph::new("Calendar too small"),
-            area,
-        );
+        frame.render_widget(Paragraph::new("Calendar too small"), area);
         return;
     }
 
     let mut y = 0;
 
-    let header = format!("< {} {} >", month_name(app.calendar_month), app.calendar_year);
-    let header_spans = vec![
-        Span::styled(
-            header,
-            Style::default().bold().fg(Color::Cyan),
-        ),
-    ];
+    let header = format!(
+        "< {} {} >",
+        month_name(app.calendar_month),
+        app.calendar_year
+    );
+    let header_spans = vec![Span::styled(
+        header,
+        Style::default().bold().fg(Color::Cyan),
+    )];
     frame.render_widget(
         Paragraph::new(Line::from(header_spans)),
         Rect {
@@ -204,7 +100,9 @@ fn render_calendar(frame: &mut Frame, app: &App, area: Rect) {
             let day_str = format!("{:2}", day);
 
             let is_selected = day == app.calendar_day;
-            let is_today = day == now.day() && app.calendar_month == now.month() && app.calendar_year == now.year();
+            let is_today = day == now.day()
+                && app.calendar_month == now.month()
+                && app.calendar_year == now.year();
 
             let day_text = if is_selected {
                 format!("({})", day_str.trim())
