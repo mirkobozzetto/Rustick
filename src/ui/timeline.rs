@@ -28,7 +28,6 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
     let mut lines = Vec::new();
     for hour in 0..24 {
         let hour_str = format!("{:02}:00", hour);
-        let mut line = hour_str.clone();
 
         let hour_tasks: Vec<_> = app
             .tasks
@@ -57,7 +56,7 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
                 }
             };
 
-            line = format!("{:02}:00  █ {}", hour, title_preview);
+            let line = format!("{:02}:00  █ {}", hour, title_preview);
 
             if hour == current_hour {
                 lines.push((line, Some(task_color), true));

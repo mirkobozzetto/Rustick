@@ -63,7 +63,7 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
             format!("in {}m", (duration.num_minutes()).max(1))
         };
 
-        let color = match task.priority {
+        let _color = match task.priority {
             1 => Color::Red,
             2 => Color::Yellow,
             3 => Color::Cyan,

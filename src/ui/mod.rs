@@ -46,7 +46,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
     upcoming::render(frame, app, right_chunks[1]);
     render_status_bar(frame, app, status_area);
 
-    if app.mode == Mode::Insert {
+    if app.mode == Mode::Insert || app.mode == Mode::TimeInput {
         task_input::render(frame, app, main_area);
     }
     if app.mode == Mode::Search {
@@ -90,6 +90,7 @@ fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
         Mode::Insert => "[INS]",
         Mode::Search => "[SRC]",
         Mode::Focus => "[FOC]",
+        Mode::TimeInput => "[TIME]",
     };
 
     let task_count = app.tasks.len();
