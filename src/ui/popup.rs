@@ -1,10 +1,10 @@
 use crate::app::App;
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, Paragraph, Wrap, Clear};
 
 pub fn render(frame: &mut Frame, app: &App, area: Rect) {
-    let popup_width = (area.width as f32 * 0.4) as u16;
-    let popup_height = (area.height as f32 * 0.2).max(5.0) as u16;
+    let popup_width = (area.width as f32 * 0.5) as u16;
+    let popup_height = (area.height as f32 * 0.3).max(8.0) as u16;
 
     let popup_x = (area.width.saturating_sub(popup_width)) / 2;
     let popup_y = (area.height.saturating_sub(popup_height)) / 2;
@@ -16,10 +16,31 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
         height: popup_height,
     };
 
+    frame.render_widget(Clear, popup_area);
+
+    let is_help = app.popup_message.starts_with("j/");
+    let is_reminder = app.popup_message.starts_with("REMINDER:");
+    let is_confirmation = app.pending_delete.is_some();
+
+    let (title, border_color, animated) = if is_reminder {
+        ("Reminder!", Color::Red, true)
+    } else if is_help {
+        ("Help", Color::Blue, false)
+    } else {
+        ("Confirm", Color::Yellow, false)
+    };
+
+    let border_style = if animated {
+        Style::default().fg(border_color).italic()
+    } else {
+        Style::default().fg(border_color)
+    };
+
     let overlay = Block::default()
-        .title("Confirm")
+        .title(title)
+        .title_alignment(Alignment::Center)
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Yellow))
+        .border_style(border_style)
         .style(Style::default().bg(Color::Black));
 
     let inner = overlay.inner(popup_area);
@@ -39,14 +60,22 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
         height: 2,
     };
 
-    let message = Paragraph::new(app.popup_message.clone())
+    let display_message = if is_help {
+        app.popup_message.trim_start_matches("j/").to_string()
+    } else if is_reminder {
+        app.popup_message.trim_start_matches("REMINDER:").trim().to_string()
+    } else {
+        app.popup_message.clone()
+    };
+
+    let message = Paragraph::new(display_message)
         .wrap(Wrap { trim: true });
     frame.render_widget(message, message_area);
 
-    let footer_text = if app.pending_delete.is_some() {
-        "[Enter] Confirm  [Esc] Cancel"
+    let footer_text = if is_confirmation {
+        "[Enter] OK  [Esc] Cancel"
     } else {
-        "[Esc] Close"
+        "[Esc] Dismiss"
     };
 
     let footer = Paragraph::new(footer_text)
