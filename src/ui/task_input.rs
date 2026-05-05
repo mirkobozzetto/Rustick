@@ -5,7 +5,7 @@ use ratatui::widgets::{Block, Borders, Paragraph};
 pub fn render(frame: &mut Frame, app: &App, area: Rect) {
     match app.mode {
         crate::app::Mode::Insert => render_insert_mode(frame, app, area),
-        crate::app::Mode::DatePick => {},
+        crate::app::Mode::DatePick => {}
         crate::app::Mode::TimeInput => render_time_input_mode(frame, app, area),
         _ => {}
     }
@@ -42,9 +42,7 @@ fn render_insert_mode(frame: &mut Frame, app: &App, area: Rect) {
         if i == cursor_pos {
             spans.push(Span::styled(
                 c.to_string(),
-                Style::default()
-                    .bg(Color::Cyan)
-                    .fg(Color::Black),
+                Style::default().bg(Color::Cyan).fg(Color::Black),
             ));
         } else {
             spans.push(Span::raw(c.to_string()));
@@ -54,9 +52,7 @@ fn render_insert_mode(frame: &mut Frame, app: &App, area: Rect) {
     if cursor_pos >= display_text.len() {
         spans.push(Span::styled(
             " ",
-            Style::default()
-                .bg(Color::Cyan)
-                .fg(Color::Black),
+            Style::default().bg(Color::Cyan).fg(Color::Black),
         ));
     }
 
@@ -79,7 +75,7 @@ fn render_time_input_mode(frame: &mut Frame, app: &App, area: Rect) {
     let inner = block.inner(input_area);
     frame.render_widget(block, input_area);
 
-    let label = "Time (HH:MM, +2h, +30m, demain): ";
+    let label = "Heure (HH:MM): ";
     let display_text = format!("{}{}", label, app.time_input_buffer);
     let cursor_pos = label.len() + app.time_input_cursor;
 
@@ -88,9 +84,7 @@ fn render_time_input_mode(frame: &mut Frame, app: &App, area: Rect) {
         if i == cursor_pos {
             spans.push(Span::styled(
                 c.to_string(),
-                Style::default()
-                    .bg(Color::Cyan)
-                    .fg(Color::Black),
+                Style::default().bg(Color::Cyan).fg(Color::Black),
             ));
         } else {
             spans.push(Span::raw(c.to_string()));
@@ -100,9 +94,7 @@ fn render_time_input_mode(frame: &mut Frame, app: &App, area: Rect) {
     if cursor_pos >= display_text.len() {
         spans.push(Span::styled(
             " ",
-            Style::default()
-                .bg(Color::Cyan)
-                .fg(Color::Black),
+            Style::default().bg(Color::Cyan).fg(Color::Black),
         ));
     }
 
