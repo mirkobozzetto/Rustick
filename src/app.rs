@@ -2,6 +2,7 @@ use crate::error::{Result, RustickError};
 use crate::event::Event;
 use crate::model::Task;
 use crate::ui;
+use chrono::Local;
 use crossterm::event::EventStream;
 use ratatui::prelude::*;
 use std::time::Duration;
@@ -34,14 +35,60 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
+        let now = Local::now();
+        let mut tasks = vec![
+            Task::new(ulid::Ulid::new().to_string(), "Fix login bug".into()),
+            Task::new(ulid::Ulid::new().to_string(), "Write documentation".into()),
+            Task::new(ulid::Ulid::new().to_string(), "Deploy to staging".into()),
+            Task::new(ulid::Ulid::new().to_string(), "Review PR #42".into()),
+        ];
+
+        tasks[0].due_at = Some(now - chrono::Duration::hours(5));
+        tasks[0].priority = 1;
+
+        tasks[1].due_at = Some(now + chrono::Duration::hours(2));
+        tasks[1].priority = 2;
+
+        tasks[2].due_at = Some(now + chrono::Duration::days(3));
+        tasks[2].priority = 1;
+
+        tasks[3].due_at = Some(now + chrono::Duration::days(7));
+        tasks[3].priority = 3;
+
         Self {
             mode: Mode::Normal,
             active_panel: Panel::Main,
-            tasks: Vec::new(),
+            tasks,
             selected_index: 0,
             running: true,
             tick_count: 0,
         }
+    }
+
+    pub fn visible_tasks(&self) -> (Vec<&Task>, Vec<&Task>, Vec<&Task>, Vec<&Task>) {
+        let now = Local::now();
+        let today_date = now.date_naive();
+
+        let mut overdue = Vec::new();
+        let mut today = Vec::new();
+        let mut upcoming = Vec::new();
+        let mut no_date = Vec::new();
+
+        for task in &self.tasks {
+            if let Some(due_at) = task.due_at {
+                if due_at < now {
+                    overdue.push(task);
+                } else if due_at.date_naive() == today_date {
+                    today.push(task);
+                } else {
+                    upcoming.push(task);
+                }
+            } else {
+                no_date.push(task);
+            }
+        }
+
+        (overdue, today, upcoming, no_date)
     }
 }
 
