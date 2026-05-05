@@ -102,12 +102,17 @@ fn render_task_item(task: &Task, selected: bool) -> ListItem<'_> {
         (false, false) => Style::default(),
     };
 
-    let content = vec![
+    let mut content = vec![
         Span::styled(indicator, if selected { Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD) } else { Style::default() }),
         Span::styled(priority_str, Style::default().fg(priority_color)),
         Span::raw(" "),
         Span::styled(task.title.clone(), title_style),
     ];
+
+    if let Some(due) = task.due_at {
+        let time_str = format!(" @ {}", due.format("%H:%M"));
+        content.push(Span::styled(time_str, Style::default().fg(Color::Cyan).add_modifier(Modifier::DIM)));
+    }
 
     ListItem::new(Line::from(content))
 }

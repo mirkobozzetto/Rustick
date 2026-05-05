@@ -16,6 +16,7 @@ pub enum Mode {
     Insert,
     Search,
     Focus,
+    TimeInput,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,16 +33,21 @@ pub struct App {
     pub selected_index: usize,
     pub running: bool,
     pub tick_count: u64,
-    store: Store,
+    pub store: Store,
     pub input_buffer: String,
     pub input_cursor: usize,
     pub editing_task: Option<usize>,
+    pub editing_body: bool,
     pub popup_visible: bool,
     pub popup_message: String,
     pub _popup_confirm: bool,
     pub pending_delete: Option<usize>,
     pub sidebar_index: usize,
     pub timeline_scroll: usize,
+    pub time_input_buffer: String,
+    pub time_input_cursor: usize,
+    pub alert_task: Option<String>,
+    pub alert_tick: u64,
 }
 
 impl App {
@@ -74,6 +80,7 @@ impl App {
             "Insert" => Mode::Insert,
             "Search" => Mode::Search,
             "Focus" => Mode::Focus,
+            "TimeInput" => Mode::TimeInput,
             _ => Mode::Normal,
         };
 
@@ -100,12 +107,17 @@ impl App {
             input_buffer: String::new(),
             input_cursor: 0,
             editing_task: None,
+            editing_body: false,
             popup_visible: false,
             popup_message: String::new(),
             _popup_confirm: false,
             pending_delete: None,
             sidebar_index: 0,
             timeline_scroll: 0,
+            time_input_buffer: String::new(),
+            time_input_cursor: 0,
+            alert_task: None,
+            alert_tick: 0,
         })
     }
 
@@ -161,6 +173,7 @@ impl App {
                 Mode::Insert => "Insert",
                 Mode::Search => "Search",
                 Mode::Focus => "Focus",
+                Mode::TimeInput => "TimeInput",
             },
         )?;
         Ok(())
