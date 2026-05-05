@@ -99,13 +99,13 @@ fn render_calendar(frame: &mut Frame, app: &App, area: Rect) {
         for day in 1..=days_in_month {
             let day_str = format!("{:2}", day);
 
-            let is_selected = day == app.calendar_day;
+            let is_selected = app.mode == Mode::DatePick && day == app.calendar_day;
             let is_today = day == now.day()
                 && app.calendar_month == now.month()
                 && app.calendar_year == now.year();
 
             let day_text = if is_selected {
-                format!("({})", day_str.trim())
+                format!("[{}]", day_str.trim())
             } else if is_today {
                 format!(" {}*", day_str.trim())
             } else {
@@ -218,7 +218,11 @@ fn render_calendar(frame: &mut Frame, app: &App, area: Rect) {
         y += 1;
     }
 
-    let hints = "←→↑↓: Navigate  H/L: Month  Enter: Select  Esc: Cancel";
+    let hints = if app.mode == Mode::DatePick {
+        "↑↓: Week  H/L: Month  Enter: Select  Esc: Cancel"
+    } else {
+        "Enter: Navigate calendar"
+    };
     frame.render_widget(
         Paragraph::new(hints).style(Style::default().fg(Color::DarkGray)),
         Rect {

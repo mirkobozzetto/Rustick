@@ -172,52 +172,12 @@ fn handle_sidebar_panel(app: &mut App, code: KeyCode) {
 
 fn handle_timeline_panel(app: &mut App, code: KeyCode) {
     match code {
-        KeyCode::Char('j') | KeyCode::Down => {
-            let max_day = days_in_month(app.calendar_year, app.calendar_month);
-            if app.calendar_day + 7 <= max_day {
-                app.calendar_day += 7;
-            } else if app.calendar_month == 12 {
-                app.calendar_month = 1;
-                app.calendar_year += 1;
-                app.calendar_day = (app.calendar_day + 7 - max_day)
-                    .min(days_in_month(app.calendar_year, app.calendar_month));
-            } else {
-                app.calendar_month += 1;
-                app.calendar_day = (app.calendar_day + 7 - max_day)
-                    .min(days_in_month(app.calendar_year, app.calendar_month));
-            }
-        }
-        KeyCode::Char('k') | KeyCode::Up => {
-            if app.calendar_day > 7 {
-                app.calendar_day -= 7;
-            } else if app.calendar_month == 1 {
-                app.calendar_month = 12;
-                app.calendar_year -= 1;
-                let max_day = days_in_month(app.calendar_year, app.calendar_month);
-                app.calendar_day = max_day.saturating_sub(7 - app.calendar_day);
-            } else {
-                app.calendar_month -= 1;
-                let max_day = days_in_month(app.calendar_year, app.calendar_month);
-                app.calendar_day = max_day.saturating_sub(7 - app.calendar_day);
-            }
-        }
-        KeyCode::Char('H') => {
-            if app.calendar_month == 1 {
-                app.calendar_month = 12;
-                app.calendar_year -= 1;
-            } else {
-                app.calendar_month -= 1;
-            }
-            app.calendar_day = app.calendar_day.min(days_in_month(app.calendar_year, app.calendar_month));
-        }
-        KeyCode::Char('L') => {
-            if app.calendar_month == 12 {
-                app.calendar_month = 1;
-                app.calendar_year += 1;
-            } else {
-                app.calendar_month += 1;
-            }
-            app.calendar_day = app.calendar_day.min(days_in_month(app.calendar_year, app.calendar_month));
+        KeyCode::Enter => {
+            app.mode = Mode::DatePick;
+            let now = chrono::Local::now();
+            app.calendar_year = chrono::Datelike::year(&now);
+            app.calendar_month = chrono::Datelike::month(&now);
+            app.calendar_day = chrono::Datelike::day(&now);
         }
         _ => {}
     }
