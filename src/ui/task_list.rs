@@ -76,7 +76,7 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(list, inner);
 }
 
-fn render_task_item<'a>(task: &'a Task, selected: bool) -> ListItem<'a> {
+fn render_task_item(task: &Task, selected: bool) -> ListItem<'_> {
     let priority_color = match task.priority {
         1 => Color::Red,
         2 => Color::Yellow,

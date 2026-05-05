@@ -9,7 +9,7 @@ use crate::app::{App, Mode, Panel};
 use crate::model::task::TaskStatus;
 use chrono::Local;
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
 pub fn draw(frame: &mut Frame, app: &App) {
     let area = frame.area();
@@ -35,9 +35,15 @@ pub fn draw(frame: &mut Frame, app: &App) {
     let main_area = horizontal_chunks[1];
     let timeline_area = horizontal_chunks[2];
 
+    let right_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+        .split(timeline_area);
+
     render_sidebar(frame, app, sidebar_area);
     task_list::render(frame, app, main_area);
-    timeline::render(frame, app, timeline_area);
+    timeline::render(frame, app, right_chunks[0]);
+    upcoming::render(frame, app, right_chunks[1]);
     render_status_bar(frame, app, status_area);
 
     if app.mode == Mode::Insert {
@@ -67,7 +73,7 @@ fn render_sidebar(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(block, area);
 
     let sidebar_text = "All Tasks\nToday\nThis Week\n\nTags\nViews\nFilters";
-    let paragraph = Paragraph::new(sidebar_text);
+    let paragraph = Paragraph::new(sidebar_text).wrap(Wrap { trim: true });
     frame.render_widget(paragraph, inner);
 }
 
