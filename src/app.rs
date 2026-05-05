@@ -33,6 +33,13 @@ pub struct App {
     pub running: bool,
     pub tick_count: u64,
     store: Store,
+    pub input_buffer: String,
+    pub input_cursor: usize,
+    pub editing_task: Option<usize>,
+    pub popup_visible: bool,
+    pub popup_message: String,
+    pub popup_confirm: bool,
+    pub pending_delete: Option<usize>,
 }
 
 impl App {
@@ -88,6 +95,13 @@ impl App {
             running: true,
             tick_count: 0,
             store,
+            input_buffer: String::new(),
+            input_cursor: 0,
+            editing_task: None,
+            popup_visible: false,
+            popup_message: String::new(),
+            popup_confirm: false,
+            pending_delete: None,
         })
     }
 
