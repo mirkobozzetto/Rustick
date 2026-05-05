@@ -21,6 +21,10 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
 
     let (overdue, today, upcoming, no_date) = app.visible_tasks();
 
+    let done_tasks: Vec<&Task> = app.tasks.iter()
+        .filter(|t| t.status == TaskStatus::Done)
+        .collect();
+
     let mut items = Vec::new();
     let mut task_index = 0;
 
@@ -72,11 +76,19 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
         }
     }
 
+    if !done_tasks.is_empty() {
+        let done_header = format!("── Done ({}) ──", done_tasks.len());
+        items.push(ListItem::new(Span::styled(
+            done_header,
+            Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
+        )));
+    }
+
     let list = List::new(items);
     frame.render_widget(list, inner);
 }
 
-fn render_task_item(task: &Task, selected: bool) -> ListItem<'_> {
+fn render_task_item<'a>(task: &'a Task, selected: bool) -> ListItem<'a> {
     let priority_color = match task.priority {
         1 => Color::Red,
         2 => Color::Yellow,
@@ -102,7 +114,9 @@ fn render_task_item(task: &Task, selected: bool) -> ListItem<'_> {
         (false, false) => Style::default(),
     };
 
-    let mut content = vec![
+    let mut lines = Vec::new();
+
+    let mut title_content = vec![
         Span::styled(indicator, if selected { Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD) } else { Style::default() }),
         Span::styled(priority_str, Style::default().fg(priority_color)),
         Span::raw(" "),
@@ -111,8 +125,24 @@ fn render_task_item(task: &Task, selected: bool) -> ListItem<'_> {
 
     if let Some(due) = task.due_at {
         let time_str = format!(" @ {}", due.format("%H:%M"));
-        content.push(Span::styled(time_str, Style::default().fg(Color::Cyan).add_modifier(Modifier::DIM)));
+        title_content.push(Span::styled(time_str, Style::default().fg(Color::Cyan).add_modifier(Modifier::DIM)));
     }
 
-    ListItem::new(Line::from(content))
+    lines.push(Line::from(title_content));
+
+    if let Some(body) = &task.body {
+        if !body.is_empty() {
+            let preview = if body.len() > 30 {
+                format!("{}…", &body[..30])
+            } else {
+                body.clone()
+            };
+            lines.push(Line::from(Span::styled(
+                format!("  {}", preview),
+                Style::default().add_modifier(Modifier::DIM),
+            )));
+        }
+    }
+
+    ListItem::new(lines)
 }
