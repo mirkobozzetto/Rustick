@@ -75,7 +75,7 @@ fn render_time_input_mode(frame: &mut Frame, app: &App, area: Rect) {
     let inner = block.inner(input_area);
     frame.render_widget(block, input_area);
 
-    let label = "Heure (HH:MM): ";
+    let label = "Time (HH:MM): ";
     let display_text = format!("{}{}", label, app.time_input_buffer);
     let cursor_pos = label.len() + app.time_input_cursor;
 
