@@ -1,12 +1,12 @@
 use crate::app::{App, Mode, Panel};
 use crate::event::Event;
 use crate::model::Task;
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, KeyEventKind};
 use ulid::Ulid;
 
 pub fn handle_event(app: &mut App, event: Event) {
     match event {
-        Event::Key(key) => {
+        Event::Key(key) if key.kind == KeyEventKind::Press => {
             if app.popup_visible {
                 handle_popup_mode(app, key.code);
             } else {
@@ -21,6 +21,7 @@ pub fn handle_event(app: &mut App, event: Event) {
         Event::Tick => {
             app.tick_count = app.tick_count.wrapping_add(1);
         }
+        Event::Key(_) => {}
         Event::Resize(_, _) => {}
         Event::Reminder(_) => {}
     }
