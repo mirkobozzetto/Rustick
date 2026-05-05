@@ -13,7 +13,7 @@ pub fn handle_event(app: &mut App, event: Event) {
                 match app.mode {
                     Mode::Normal => handle_normal_mode(app, key.code),
                     Mode::Insert => handle_insert_mode(app, key.code),
-                    Mode::Search => {}
+                    Mode::Search => handle_search_mode(app, key.code),
                     Mode::Focus => {}
                 }
             }
@@ -29,12 +29,6 @@ pub fn handle_event(app: &mut App, event: Event) {
 
 fn handle_normal_mode(app: &mut App, code: KeyCode) {
     match code {
-        KeyCode::Char('j') | KeyCode::Down => {
-            app.selected_index = (app.selected_index + 1).min(app.tasks.len().saturating_sub(1));
-        }
-        KeyCode::Char('k') | KeyCode::Up => {
-            app.selected_index = app.selected_index.saturating_sub(1);
-        }
         KeyCode::Char('h') | KeyCode::Left => {
             app.active_panel = match app.active_panel {
                 Panel::Sidebar => Panel::Timeline,
@@ -48,6 +42,34 @@ fn handle_normal_mode(app: &mut App, code: KeyCode) {
                 Panel::Main => Panel::Timeline,
                 Panel::Timeline => Panel::Sidebar,
             };
+        }
+        KeyCode::Char('q') => {
+            app.running = false;
+        }
+        KeyCode::Char('?') => {
+            app.popup_message = "j/↓: Down | k/↑: Up | h/←: Left | l/→: Right | Tab: Next Panel\nn: New | e: Edit | Space: Toggle | d: Delete\n1-4: Priority | /: Search | q: Quit | ?: Help".to_string();
+            app.popup_visible = true;
+        }
+        KeyCode::Char('/') => {
+            app.mode = Mode::Search;
+            app.input_buffer.clear();
+            app.input_cursor = 0;
+        }
+        _ => match app.active_panel {
+            Panel::Main => handle_main_panel(app, code),
+            Panel::Sidebar => handle_sidebar_panel(app, code),
+            Panel::Timeline => handle_timeline_panel(app, code),
+        },
+    }
+}
+
+fn handle_main_panel(app: &mut App, code: KeyCode) {
+    match code {
+        KeyCode::Char('j') | KeyCode::Down => {
+            app.selected_index = (app.selected_index + 1).min(app.tasks.len().saturating_sub(1));
+        }
+        KeyCode::Char('k') | KeyCode::Up => {
+            app.selected_index = app.selected_index.saturating_sub(1);
         }
         KeyCode::Char('n') => {
             app.mode = Mode::Insert;
@@ -74,36 +96,38 @@ fn handle_normal_mode(app: &mut App, code: KeyCode) {
                 app.pending_delete = Some(app.selected_index);
             }
         }
-        KeyCode::Char('1') => {
+        KeyCode::Char(c @ '1'..='4') => {
             if app.selected_index < app.tasks.len() {
-                app.tasks[app.selected_index].priority = 1;
+                app.tasks[app.selected_index].priority = c.to_digit(10).unwrap_or(3) as u8;
                 let _ = app.update_task(app.selected_index).ok();
             }
         }
-        KeyCode::Char('2') => {
-            if app.selected_index < app.tasks.len() {
-                app.tasks[app.selected_index].priority = 2;
-                let _ = app.update_task(app.selected_index).ok();
-            }
+        _ => {}
+    }
+}
+
+fn handle_sidebar_panel(app: &mut App, code: KeyCode) {
+    match code {
+        KeyCode::Char('j') | KeyCode::Down => {
+            app.sidebar_index = (app.sidebar_index + 1).min(6);
         }
-        KeyCode::Char('3') => {
-            if app.selected_index < app.tasks.len() {
-                app.tasks[app.selected_index].priority = 3;
-                let _ = app.update_task(app.selected_index).ok();
-            }
+        KeyCode::Char('k') | KeyCode::Up => {
+            app.sidebar_index = app.sidebar_index.saturating_sub(1);
         }
-        KeyCode::Char('4') => {
-            if app.selected_index < app.tasks.len() {
-                app.tasks[app.selected_index].priority = 4;
-                let _ = app.update_task(app.selected_index).ok();
-            }
+        KeyCode::Enter => {
+            app.active_panel = Panel::Main;
         }
-        KeyCode::Char('q') => {
-            app.running = false;
+        _ => {}
+    }
+}
+
+fn handle_timeline_panel(app: &mut App, code: KeyCode) {
+    match code {
+        KeyCode::Char('j') | KeyCode::Down => {
+            app.timeline_scroll = app.timeline_scroll.saturating_add(1).min(23);
         }
-        KeyCode::Char('?') => {
-            app.popup_message = "j/↓: Down | k/↑: Up | h/←: Left | l/→: Right | Tab: Next Panel\nn: New | e: Edit | Space: Toggle | d: Delete\n1-4: Priority | q: Quit | ?: Help".to_string();
-            app.popup_visible = true;
+        KeyCode::Char('k') | KeyCode::Up => {
+            app.timeline_scroll = app.timeline_scroll.saturating_sub(1);
         }
         _ => {}
     }
@@ -158,6 +182,47 @@ fn handle_insert_mode(app: &mut App, code: KeyCode) {
             app.input_buffer.clear();
             app.input_cursor = 0;
             app.editing_task = None;
+        }
+        _ => {}
+    }
+}
+
+fn handle_search_mode(app: &mut App, code: KeyCode) {
+    match code {
+        KeyCode::Char(c) => {
+            app.input_buffer.insert(app.input_cursor, c);
+            app.input_cursor += 1;
+        }
+        KeyCode::Backspace => {
+            if app.input_cursor > 0 {
+                app.input_cursor -= 1;
+                app.input_buffer.remove(app.input_cursor);
+            }
+        }
+        KeyCode::Enter => {
+            let query = app.input_buffer.clone();
+            if !query.is_empty() {
+                for (i, task) in app.tasks.iter().enumerate() {
+                    if task.title.to_lowercase().contains(&query.to_lowercase()) {
+                        app.selected_index = i;
+                        break;
+                    }
+                }
+            }
+            app.mode = Mode::Normal;
+            app.input_buffer.clear();
+            app.input_cursor = 0;
+        }
+        KeyCode::Esc => {
+            app.mode = Mode::Normal;
+            app.input_buffer.clear();
+            app.input_cursor = 0;
+        }
+        KeyCode::Left => {
+            app.input_cursor = app.input_cursor.saturating_sub(1);
+        }
+        KeyCode::Right => {
+            app.input_cursor = (app.input_cursor + 1).min(app.input_buffer.len());
         }
         _ => {}
     }

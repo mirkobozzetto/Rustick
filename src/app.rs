@@ -38,8 +38,10 @@ pub struct App {
     pub editing_task: Option<usize>,
     pub popup_visible: bool,
     pub popup_message: String,
-    pub popup_confirm: bool,
+    pub _popup_confirm: bool,
     pub pending_delete: Option<usize>,
+    pub sidebar_index: usize,
+    pub timeline_scroll: usize,
 }
 
 impl App {
@@ -100,8 +102,10 @@ impl App {
             editing_task: None,
             popup_visible: false,
             popup_message: String::new(),
-            popup_confirm: false,
+            _popup_confirm: false,
             pending_delete: None,
+            sidebar_index: 0,
+            timeline_scroll: 0,
         })
     }
 
