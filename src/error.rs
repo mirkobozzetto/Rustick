@@ -22,6 +22,9 @@ pub enum RustickError {
 
     #[error("Terminal error: {0}")]
     TerminalError(String),
+
+    #[error("Database error: {0}")]
+    DatabaseError(#[from] rusqlite::Error),
 }
 
 pub type Result<T> = std::result::Result<T, RustickError>;

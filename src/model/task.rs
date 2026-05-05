@@ -9,6 +9,24 @@ pub enum TaskStatus {
     Archived,
 }
 
+impl TaskStatus {
+    pub fn to_str(&self) -> &str {
+        match self {
+            TaskStatus::Todo => "todo",
+            TaskStatus::Done => "done",
+            TaskStatus::Archived => "archived",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "done" => TaskStatus::Done,
+            "archived" => TaskStatus::Archived,
+            _ => TaskStatus::Todo,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
     pub id: String,
