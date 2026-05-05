@@ -3,7 +3,7 @@ use crate::event::Event;
 use crate::model::Task;
 use crate::store::Store;
 use crate::ui;
-use chrono::{Local, Datelike};
+use chrono::{Datelike, Local};
 use crossterm::event::EventStream;
 use ratatui::prelude::*;
 use std::time::Duration;
@@ -44,7 +44,7 @@ pub struct App {
     pub _popup_confirm: bool,
     pub pending_delete: Option<usize>,
     pub sidebar_index: usize,
-    pub timeline_scroll: usize,
+    pub _timeline_scroll: usize,
     pub time_input_buffer: String,
     pub time_input_cursor: usize,
     pub alert_task: Option<String>,
@@ -119,7 +119,7 @@ impl App {
             _popup_confirm: false,
             pending_delete: None,
             sidebar_index: 0,
-            timeline_scroll: 0,
+            _timeline_scroll: 0,
             time_input_buffer: String::new(),
             time_input_cursor: 0,
             alert_task: None,
