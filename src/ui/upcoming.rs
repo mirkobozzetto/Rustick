@@ -1,4 +1,5 @@
 use crate::app::App;
+use crate::event::scheduler::format_relative_time;
 use crate::model::task::TaskStatus;
 use chrono::Local;
 use ratatui::prelude::*;
@@ -11,18 +12,6 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
         Style::default().fg(Color::DarkGray)
     };
 
-    let block = Block::default()
-        .title("Upcoming")
-        .borders(Borders::ALL)
-        .border_style(border_style);
-
-    let inner = block.inner(area);
-    frame.render_widget(block, area);
-
-    if inner.height < 2 {
-        return;
-    }
-
     let now = Local::now();
 
     let mut upcoming_tasks: Vec<_> = app
@@ -34,8 +23,25 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
 
     upcoming_tasks.sort_by_key(|t| t.due_at);
 
+    let count = upcoming_tasks.len();
+    let title = format!("Upcoming ({})", count);
+
+    let block = Block::default()
+        .title(title)
+        .borders(Borders::ALL)
+        .border_style(border_style);
+
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    if inner.height < 2 {
+        return;
+    }
+
     if upcoming_tasks.is_empty() {
-        let text = Paragraph::new("No upcoming tasks").alignment(Alignment::Center);
+        let text = Paragraph::new("No upcoming tasks")
+            .alignment(Alignment::Center)
+            .style(Style::default().dim());
         frame.render_widget(text, inner);
         return;
     }
@@ -49,42 +55,29 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
         }
 
         let due_at = task.due_at.unwrap();
-        let duration = due_at.signed_duration_since(now);
+        let time_str = format_relative_time(due_at);
 
-        let time_str = if duration.num_days() > 0 {
-            if duration.num_days() == 1 {
-                "tomorrow".to_string()
-            } else {
-                format!("in {} days", duration.num_days())
-            }
-        } else if duration.num_hours() > 0 {
-            format!("in {}h", duration.num_hours())
-        } else {
-            format!("in {}m", (duration.num_minutes()).max(1))
-        };
-
-        let _color = match task.priority {
+        let priority_color = match task.priority {
             1 => Color::Red,
             2 => Color::Yellow,
-            3 => Color::Cyan,
+            3 => Color::Blue,
             _ => Color::DarkGray,
         };
 
+        let dot_style = Style::default().fg(priority_color);
         let time_style = Style::default().dim();
-        let title_style = Style::default();
 
-        let first_line = format!("● in {}", if time_str.starts_with("in ") {
-            &time_str[3..]
-        } else {
-            &time_str
-        });
+        let mut spans = Vec::new();
+        spans.push(Span::styled("● ", dot_style));
+        spans.push(Span::styled(
+            time_str.clone(),
+            time_style,
+        ));
+        spans.push(Span::raw("  "));
+        spans.push(Span::raw(task.title.clone()));
 
         frame.render_widget(
-            Paragraph::new(first_line).style(if time_str.starts_with("in ") {
-                time_style
-            } else {
-                Style::default()
-            }),
+            Paragraph::new(Line::from(spans)),
             Rect {
                 x: inner.x,
                 y,
@@ -94,24 +87,5 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
         );
 
         y += 1;
-
-        if y < inner.y + inner.height {
-            let title_display = task.title.chars().take(inner.width as usize - 3).collect::<String>();
-            frame.render_widget(
-                Paragraph::new(format!("   {}", title_display)).style(title_style),
-                Rect {
-                    x: inner.x,
-                    y,
-                    width: inner.width,
-                    height: 1,
-                },
-            );
-
-            y += 1;
-
-            if y < inner.y + inner.height {
-                y += 1;
-            }
-        }
     }
 }

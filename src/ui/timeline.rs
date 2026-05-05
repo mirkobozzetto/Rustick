@@ -134,7 +134,7 @@ fn render_timeline(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 fn render_calendar(frame: &mut Frame, app: &App, area: Rect) {
-    if area.height < 10 {
+    if area.height < 15 {
         frame.render_widget(
             Paragraph::new("Calendar too small"),
             area,
@@ -153,6 +153,19 @@ fn render_calendar(frame: &mut Frame, app: &App, area: Rect) {
     ];
     frame.render_widget(
         Paragraph::new(Line::from(header_spans)),
+        Rect {
+            x: area.x,
+            y: area.y + y,
+            width: area.width,
+            height: 1,
+        },
+    );
+    y += 1;
+
+    let now = Local::now();
+    let now_time = now.format("%H:%M:%S").to_string();
+    frame.render_widget(
+        Paragraph::new(format!("⏰ {}", now_time)).style(Style::default().fg(Color::Yellow)),
         Rect {
             x: area.x,
             y: area.y + y,
@@ -181,7 +194,6 @@ fn render_calendar(frame: &mut Frame, app: &App, area: Rect) {
     ) {
         let first_weekday = first_date.weekday().number_from_monday();
         let days_in_month = days_in_month(app.calendar_year, app.calendar_month);
-        let now = Local::now();
 
         let mut week_str = String::new();
         for _ in 1..first_weekday {
@@ -195,7 +207,7 @@ fn render_calendar(frame: &mut Frame, app: &App, area: Rect) {
             let is_today = day == now.day() && app.calendar_month == now.month() && app.calendar_year == now.year();
 
             let day_text = if is_selected {
-                format!("[{}]", day_str.trim())
+                format!("({})", day_str.trim())
             } else if is_today {
                 format!(" {}*", day_str.trim())
             } else {
@@ -206,8 +218,16 @@ fn render_calendar(frame: &mut Frame, app: &App, area: Rect) {
 
             let weekday = (first_weekday + (day as u8 - 1) - 1) % 7;
             if weekday == 6 || day == days_in_month {
+                let line_style = if is_selected {
+                    Style::default().fg(Color::Green).bold()
+                } else if is_today {
+                    Style::default().fg(Color::Cyan)
+                } else {
+                    Style::default()
+                };
+
                 frame.render_widget(
-                    Paragraph::new(week_str.clone()),
+                    Paragraph::new(week_str.clone()).style(line_style),
                     Rect {
                         x: area.x,
                         y: area.y + y,
@@ -221,7 +241,73 @@ fn render_calendar(frame: &mut Frame, app: &App, area: Rect) {
         }
     }
 
-    while y < area.height as u16 {
+    y += 1;
+
+    let selected_day = app.calendar_day;
+    let selected_month = app.calendar_month;
+    let selected_year = app.calendar_year;
+
+    let tasks_for_day: Vec<_> = app
+        .tasks
+        .iter()
+        .filter(|t| {
+            if let Some(due_at) = t.due_at {
+                let due_date = due_at.date_naive();
+                due_date.day() == selected_day
+                    && due_date.month() == selected_month
+                    && due_date.year() == selected_year
+            } else {
+                false
+            }
+        })
+        .collect();
+
+    frame.render_widget(
+        Paragraph::new("Today's tasks:").style(Style::default().fg(Color::Gray)),
+        Rect {
+            x: area.x,
+            y: area.y + y,
+            width: area.width,
+            height: 1,
+        },
+    );
+    y += 1;
+
+    for (_idx, task) in tasks_for_day.iter().take(3).enumerate() {
+        if y >= area.height {
+            break;
+        }
+
+        let time_str = if let Some(due_at) = task.due_at {
+            due_at.format("%H:%M").to_string()
+        } else {
+            "??:??".to_string()
+        };
+
+        let task_color = if task.priority == 1 {
+            Color::Red
+        } else if task.priority == 2 {
+            Color::Yellow
+        } else {
+            Color::DarkGray
+        };
+
+        let task_title = task.title.chars().take(20).collect::<String>();
+        let task_line = format!("  {} • {}", time_str, task_title);
+
+        frame.render_widget(
+            Paragraph::new(task_line).style(Style::default().fg(task_color)),
+            Rect {
+                x: area.x,
+                y: area.y + y,
+                width: area.width,
+                height: 1,
+            },
+        );
+        y += 1;
+    }
+
+    while y < area.height.saturating_sub(3) as u16 {
         frame.render_widget(
             Paragraph::new(""),
             Rect {
@@ -233,6 +319,17 @@ fn render_calendar(frame: &mut Frame, app: &App, area: Rect) {
         );
         y += 1;
     }
+
+    let hints = "←→↑↓: Navigate  H/L: Month  Enter: Select  Esc: Cancel";
+    frame.render_widget(
+        Paragraph::new(hints).style(Style::default().fg(Color::DarkGray)),
+        Rect {
+            x: area.x,
+            y: area.y + area.height.saturating_sub(1),
+            width: area.width,
+            height: 1,
+        },
+    );
 }
 
 fn month_name(month: u32) -> &'static str {
