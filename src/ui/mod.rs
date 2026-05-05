@@ -39,6 +39,16 @@ pub fn draw(frame: &mut Frame, app: &App) {
     task_list::render(frame, app, main_area);
     timeline::render(frame, app, timeline_area);
     render_status_bar(frame, app, status_area);
+
+    if app.mode == Mode::Insert {
+        task_input::render(frame, app, main_area);
+    }
+    if app.mode == Mode::Search {
+        search::render(frame, app, frame.area());
+    }
+    if app.popup_visible {
+        popup::render(frame, app, frame.area());
+    }
 }
 
 fn render_sidebar(frame: &mut Frame, app: &App, area: Rect) {
