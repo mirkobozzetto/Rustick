@@ -5,6 +5,7 @@ use ratatui::widgets::{Block, Borders, Paragraph};
 pub fn render(frame: &mut Frame, app: &App, area: Rect) {
     match app.mode {
         crate::app::Mode::Insert => render_insert_mode(frame, app, area),
+        crate::app::Mode::DatePick => {},
         crate::app::Mode::TimeInput => render_time_input_mode(frame, app, area),
         _ => {}
     }

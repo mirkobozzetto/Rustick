@@ -3,7 +3,7 @@ use crate::event::Event;
 use crate::model::Task;
 use crate::store::Store;
 use crate::ui;
-use chrono::Local;
+use chrono::{Local, Datelike};
 use crossterm::event::EventStream;
 use ratatui::prelude::*;
 use std::time::Duration;
@@ -16,6 +16,7 @@ pub enum Mode {
     Insert,
     Search,
     Focus,
+    DatePick,
     TimeInput,
 }
 
@@ -48,6 +49,9 @@ pub struct App {
     pub time_input_cursor: usize,
     pub alert_task: Option<String>,
     pub alert_tick: u64,
+    pub calendar_year: i32,
+    pub calendar_month: u32,
+    pub calendar_day: u32,
 }
 
 impl App {
@@ -80,6 +84,7 @@ impl App {
             "Insert" => Mode::Insert,
             "Search" => Mode::Search,
             "Focus" => Mode::Focus,
+            "DatePick" => Mode::DatePick,
             "TimeInput" => Mode::TimeInput,
             _ => Mode::Normal,
         };
@@ -96,6 +101,7 @@ impl App {
             _ => Panel::Main,
         };
 
+        let now = Local::now();
         Ok(Self {
             mode,
             active_panel,
@@ -118,6 +124,9 @@ impl App {
             time_input_cursor: 0,
             alert_task: None,
             alert_tick: 0,
+            calendar_year: now.year(),
+            calendar_month: now.month(),
+            calendar_day: now.day(),
         })
     }
 
@@ -173,6 +182,7 @@ impl App {
                 Mode::Insert => "Insert",
                 Mode::Search => "Search",
                 Mode::Focus => "Focus",
+                Mode::DatePick => "DatePick",
                 Mode::TimeInput => "TimeInput",
             },
         )?;

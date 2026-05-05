@@ -1,6 +1,7 @@
 use crate::app::{App, Mode, Panel};
 use crate::event::Event;
 use crate::model::Task;
+use chrono::Datelike;
 use crossterm::event::{KeyCode, KeyEventKind};
 use ulid::Ulid;
 
@@ -14,6 +15,7 @@ pub fn handle_event(app: &mut App, event: Event) {
                     Mode::Normal => handle_normal_mode(app, key.code),
                     Mode::Insert => handle_insert_mode(app, key.code),
                     Mode::Search => handle_search_mode(app, key.code),
+                    Mode::DatePick => handle_date_pick_mode(app, key.code),
                     Mode::TimeInput => handle_time_input_mode(app, key.code),
                     Mode::Focus => {}
                 }
@@ -71,7 +73,7 @@ fn handle_normal_mode(app: &mut App, code: KeyCode) {
             app.running = false;
         }
         KeyCode::Char('?') => {
-            app.popup_message = "j/↓: Down | k/↑: Up | h/←: Left | l/→: Right | Tab: Next Panel\nn: New | e: Edit | Enter: Edit Body | t: Set Time\nSpace: Toggle | d: Delete | 1-4: Priority | /: Search | q: Quit".to_string();
+            app.popup_message = "j/↓: Down | k/↑: Up | h/←: Left | l/→: Right | Tab: Next Panel\nn: New | e: Edit | Enter: Edit Body | t: Set Date/Time\nSpace: Toggle | d: Delete | 1-4: Priority | /: Search | q: Quit".to_string();
             app.popup_visible = true;
         }
         KeyCode::Char('/') => {
@@ -113,9 +115,11 @@ fn handle_main_panel(app: &mut App, code: KeyCode) {
         }
         KeyCode::Char('t') => {
             if app.selected_index < app.tasks.len() {
-                app.mode = Mode::TimeInput;
-                app.time_input_buffer.clear();
-                app.time_input_cursor = 0;
+                app.mode = Mode::DatePick;
+                let now = chrono::Local::now();
+                app.calendar_year = now.year();
+                app.calendar_month = now.month();
+                app.calendar_day = now.day();
             }
         }
         KeyCode::Enter => {
@@ -298,6 +302,77 @@ fn handle_popup_mode(app: &mut App, code: KeyCode) {
     }
 }
 
+fn handle_date_pick_mode(app: &mut App, code: KeyCode) {
+    match code {
+        KeyCode::Char('h') | KeyCode::Left => {
+            if app.calendar_day > 1 {
+                app.calendar_day -= 1;
+            }
+        }
+        KeyCode::Char('l') | KeyCode::Right => {
+            let max_day = days_in_month(app.calendar_year, app.calendar_month);
+            if app.calendar_day < max_day {
+                app.calendar_day += 1;
+            }
+        }
+        KeyCode::Char('j') | KeyCode::Down => {
+            let max_day = days_in_month(app.calendar_year, app.calendar_month);
+            if app.calendar_day + 7 <= max_day {
+                app.calendar_day += 7;
+            } else {
+                if app.calendar_month == 12 {
+                    app.calendar_month = 1;
+                    app.calendar_year += 1;
+                } else {
+                    app.calendar_month += 1;
+                }
+                app.calendar_day = (app.calendar_day + 7 - max_day).min(days_in_month(app.calendar_year, app.calendar_month));
+            }
+        }
+        KeyCode::Char('k') | KeyCode::Up => {
+            if app.calendar_day > 7 {
+                app.calendar_day -= 7;
+            } else {
+                if app.calendar_month == 1 {
+                    app.calendar_month = 12;
+                    app.calendar_year -= 1;
+                } else {
+                    app.calendar_month -= 1;
+                }
+                let max_day = days_in_month(app.calendar_year, app.calendar_month);
+                app.calendar_day = max_day - (7 - app.calendar_day);
+            }
+        }
+        KeyCode::Char('H') => {
+            if app.calendar_month == 1 {
+                app.calendar_month = 12;
+                app.calendar_year -= 1;
+            } else {
+                app.calendar_month -= 1;
+            }
+            app.calendar_day = app.calendar_day.min(days_in_month(app.calendar_year, app.calendar_month));
+        }
+        KeyCode::Char('L') => {
+            if app.calendar_month == 12 {
+                app.calendar_month = 1;
+                app.calendar_year += 1;
+            } else {
+                app.calendar_month += 1;
+            }
+            app.calendar_day = app.calendar_day.min(days_in_month(app.calendar_year, app.calendar_month));
+        }
+        KeyCode::Enter => {
+            app.mode = Mode::TimeInput;
+            app.time_input_buffer.clear();
+            app.time_input_cursor = 0;
+        }
+        KeyCode::Esc => {
+            app.mode = Mode::Normal;
+        }
+        _ => {}
+    }
+}
+
 fn handle_time_input_mode(app: &mut App, code: KeyCode) {
     match code {
         KeyCode::Char(c) => {
@@ -317,18 +392,28 @@ fn handle_time_input_mode(app: &mut App, code: KeyCode) {
             app.time_input_cursor = (app.time_input_cursor + 1).min(app.time_input_buffer.len());
         }
         KeyCode::Enter => {
-            if let Some(due) = parse_time_input(&app.time_input_buffer) {
-                if app.selected_index < app.tasks.len() {
-                    app.tasks[app.selected_index].due_at = Some(due);
-
-                    let reminder = crate::model::reminder::Reminder::new(
-                        ulid::Ulid::new().to_string(),
-                        app.tasks[app.selected_index].id.clone(),
-                        due,
-                    );
-                    app.tasks[app.selected_index].reminders.push(reminder.clone());
-                    let _ = app.store.save_reminder(&app.tasks[app.selected_index].id, &reminder);
-                    let _ = app.update_task(app.selected_index).ok();
+            let input = app.time_input_buffer.trim().to_string();
+            if let Some((h, m)) = input.split_once(':') {
+                if let (Ok(hour), Ok(min)) = (h.parse::<u32>(), m.parse::<u32>()) {
+                    if hour < 24 && min < 60 {
+                        let date = chrono::NaiveDate::from_ymd_opt(app.calendar_year, app.calendar_month, app.calendar_day);
+                        let time = chrono::NaiveTime::from_hms_opt(hour, min, 0);
+                        if let (Some(d), Some(t)) = (date, time) {
+                            let naive = d.and_time(t);
+                            if let Some(due) = chrono::TimeZone::from_local_datetime(&chrono::Local, &naive).single() {
+                                if app.selected_index < app.tasks.len() {
+                                    app.tasks[app.selected_index].due_at = Some(due);
+                                    let reminder = crate::model::reminder::Reminder::new(
+                                        ulid::Ulid::new().to_string(),
+                                        app.tasks[app.selected_index].id.clone(),
+                                        due,
+                                    );
+                                    app.tasks[app.selected_index].reminders.push(reminder);
+                                    let _ = app.update_task(app.selected_index).ok();
+                                }
+                            }
+                        }
+                    }
                 }
             }
             app.mode = Mode::Normal;
@@ -344,34 +429,17 @@ fn handle_time_input_mode(app: &mut App, code: KeyCode) {
     }
 }
 
-fn parse_time_input(input: &str) -> Option<chrono::DateTime<chrono::Local>> {
-    let input = input.trim().to_lowercase();
-    let now = chrono::Local::now();
-
-    if input.starts_with('+') {
-        let rest = &input[1..];
-        if let Some(hours) = rest.strip_suffix('h').and_then(|s| s.parse::<i64>().ok()) {
-            return Some(now + chrono::Duration::hours(hours));
-        }
-        if let Some(mins) = rest.strip_suffix('m').and_then(|s| s.parse::<i64>().ok()) {
-            return Some(now + chrono::Duration::minutes(mins));
-        }
-    }
-
-    if let Some((h, m)) = input.split_once(':') {
-        if let (Ok(hour), Ok(min)) = (h.parse::<u32>(), m.parse::<u32>()) {
-            if hour < 24 && min < 60 {
-                let today = now.date_naive();
-                let time = chrono::NaiveTime::from_hms_opt(hour, min, 0)?;
-                let naive = today.and_time(time);
-                return Some(chrono::TimeZone::from_local_datetime(&chrono::Local, &naive).single()?);
+fn days_in_month(year: i32, month: u32) -> u32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => {
+            if (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 {
+                29
+            } else {
+                28
             }
         }
+        _ => 30,
     }
-
-    if input == "tomorrow" || input == "demain" {
-        return Some(now + chrono::Duration::days(1));
-    }
-
-    None
 }
